@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bump-minor-pre-major": true,
+  "packages": {
+    "backend": {
+      "release-type": "go",
+      "component": "backend",
+      "package-name": "github.com/ekup/ai-for-developers-project-386/backend",
+      "tag-separator": "/"
+    },
+    "frontend": {
+      "release-type": "node",
+      "component": "frontend"
+    }
+  }
+}
