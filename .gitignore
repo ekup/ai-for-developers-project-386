@@ -1,0 +1,19 @@
+# Go
+backend/bin/
+backend/data/
+*.db
+
+# Node / фронтенд
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Окружение
+.env
+.env.local
+.env.*.local
+
+# IDE и ОС
+.idea/
+.vscode/
+.DS_Store
