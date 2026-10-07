@@ -47,3 +47,17 @@
 - Сообщения коммитов — строго по [Conventional Commits](https://www.conventionalcommits.org/): `<type>[optional scope]: <description>`, где `type` — один из `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Пример: `feat: каркас приложения`. Описание — на русском, в императиве, без заглавной буквы в начале и без точки в конце. Ломающие изменения помечать `!` и/или `BREAKING CHANGE:` в теле.
 - Тесты лежат рядом с кодом: `*_test.go`, `*.test.tsx`.
 - TS строгий, с `noUnusedLocals`/`noUnusedParameters` — неиспользуемые переменные валят сборку.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles map 1:1 to their label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
