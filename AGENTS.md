@@ -35,6 +35,12 @@
 - SQLite — `modernc.org/sqlite` (чистый Go, без cgo), сборка с `CGO_ENABLED=0`. Соединение ограничено `MaxOpenConns(1)`.
 - `.github/workflows/hexlet-check.yml` автогенерируется: **не удалять/не редактировать**, репозиторий не переименовывать — иначе автотесты Хекслета сломаются. Также не трогать `.github/workflows/README.md`.
 
+## Релизы
+
+- `.github/workflows/release-please.yml` — release-please читает Conventional Commits, обновляет `CHANGELOG.md` и версии, держит release-PR; после мержа PR создаёт теги и GitHub Releases.
+- Конфиг — `release-please-config.json`, текущие версии — `.release-please-manifest.json`. Релизы раздельные: бэкенд `backend/vX.Y.Z`, фронтенд `frontend-vX.Y.Z`.
+- Версии растут по SemVer: `feat` → minor, `fix` → patch, `!`/`BREAKING CHANGE` → minor (пока `0.x` из-за `bump-minor-pre-major`).
+
 ## Конвенции
 
 - Комментарии, документация и UI-текст — на русском; идентификаторы в коде — на английском.

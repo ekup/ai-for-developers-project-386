@@ -1,0 +1,26 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      # Читает историю Conventional Commits, собирает CHANGELOG.md,
+      # поднимает версии по SemVer и держит release-PR. После мержа PR
+      # создаёт git-теги и GitHub Releases (отдельно для backend и frontend).
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
