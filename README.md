@@ -2,6 +2,8 @@
 
 [![hexlet-check](https://github.com/ekup/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/ekup/ai-for-developers-project-386/actions)
 
+**Приложение**: https://call-booking-ry23.onrender.com — демо-прод на Render, данные не переживают рестарт (см. раздел [«Прод»](#прод)).
+
 Сервис для бронирования календаря — упрощённый сервис «Запись на звонок».
 
 Учебный проект Хекслета: https://ru.hexlet.io/programs/ai-for-developers
