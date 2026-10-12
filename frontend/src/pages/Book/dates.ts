@@ -74,3 +74,12 @@ export function formatSlotTime(slot: string): string {
   const match = /T(\d{2}:\d{2})/.exec(slot)
   return match ? match[1] : slot
 }
+
+/**
+ * formatSlotDateLabel извлекает дату из старта слота и форматирует её как
+ * «13 октября, вт», также без конвертации в часовой пояс браузера.
+ */
+export function formatSlotDateLabel(slot: string): string {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(slot)
+  return match ? formatDateLabel(match[1]) : slot
+}

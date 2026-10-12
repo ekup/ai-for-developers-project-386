@@ -9,6 +9,7 @@ import { App } from './App'
 // Страницы обращаются к API при монтировании — в тестах маршрутов мокаем
 // модуль-клиент, чтобы не ходить в сеть.
 vi.mock('./api/client', () => ({
+  bookingsCreate: vi.fn(),
   bookingsWindow: vi.fn(),
   eventTypesList: vi.fn(),
   eventTypesSlots: vi.fn(),

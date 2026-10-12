@@ -3,11 +3,12 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { bookingsWindow, eventTypesList, eventTypesSlots } from '../../api/client'
-import { formatDateLabel } from './dates'
+import { bookingsCreate, bookingsWindow, eventTypesList, eventTypesSlots } from '../../api/client'
+import { formatDateLabel, formatSlotDateLabel } from './dates'
 import { EventTypePage } from './EventTypePage'
 
 vi.mock('../../api/client', () => ({
+  bookingsCreate: vi.fn(),
   bookingsWindow: vi.fn(),
   eventTypesList: vi.fn(),
   eventTypesSlots: vi.fn(),
@@ -33,8 +34,39 @@ const tomorrow = '2026-10-13'
 
 const aType = { id: 1, name: 'Короткий звонок', description: 'Быстрый вопрос', durationMinutes: 15 }
 
+const slot = `${today}T09:00:00+03:00`
+const createdBooking = {
+  id: 7,
+  eventType: aType,
+  startsAt: slot,
+  guestName: 'Анна',
+  guestEmail: 'anna@example.com',
+  comment: 'Позвоните заранее',
+}
+
+// mockBookingPage настраивает загрузку страницы: тип события, окно и один слот.
+function mockBookingPage() {
+  vi.mocked(eventTypesList).mockResolvedValue({ data: [aType], error: undefined })
+  vi.mocked(bookingsWindow).mockResolvedValue({ data: serverWindow, error: undefined })
+  vi.mocked(eventTypesSlots).mockResolvedValue({
+    data: { date: today, slots: [slot] },
+    error: undefined,
+  })
+}
+
+// selectSlotAndFillForm выбирает слот и заполняет форму гостя.
+function selectSlotAndFillForm(comment?: string) {
+  fireEvent.click(screen.getByRole('button', { name: '09:00' }))
+  fireEvent.change(screen.getByLabelText(/^Имя/), { target: { value: 'Анна' } })
+  fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: 'anna@example.com' } })
+  if (comment) {
+    fireEvent.change(screen.getByLabelText(/^Комментарий/), { target: { value: comment } })
+  }
+}
+
 describe('EventTypePage', () => {
   afterEach(() => {
+    vi.mocked(bookingsCreate).mockReset()
     vi.mocked(eventTypesList).mockReset()
     vi.mocked(eventTypesSlots).mockReset()
     vi.mocked(bookingsWindow).mockReset()
@@ -157,5 +189,63 @@ describe('EventTypePage', () => {
     renderEventTypePage()
 
     expect(await screen.findByText('Не удалось загрузить календарь')).toBeInTheDocument()
+  })
+
+  it('показывает форму после выбора слота и создаёт запись с введёнными данными', async () => {
+    mockBookingPage()
+    vi.mocked(bookingsCreate).mockResolvedValue({ data: createdBooking, error: undefined })
+
+    renderEventTypePage()
+    await screen.findByRole('button', { name: '09:00' })
+    selectSlotAndFillForm('Позвоните заранее')
+    fireEvent.click(screen.getByRole('button', { name: 'Записаться' }))
+
+    expect(await screen.findByText('Запись создана')).toBeInTheDocument()
+    expect(bookingsCreate).toHaveBeenCalledWith({
+      body: {
+        eventTypeId: 1,
+        startsAt: slot,
+        guestName: 'Анна',
+        guestEmail: 'anna@example.com',
+        comment: 'Позвоните заранее',
+      },
+    })
+  })
+
+  it('показывает подтверждение с деталями созданной записи', async () => {
+    mockBookingPage()
+    vi.mocked(bookingsCreate).mockResolvedValue({ data: createdBooking, error: undefined })
+
+    renderEventTypePage()
+    await screen.findByRole('button', { name: '09:00' })
+    selectSlotAndFillForm('Позвоните заранее')
+    fireEvent.click(screen.getByRole('button', { name: 'Записаться' }))
+
+    expect(await screen.findByText('Запись создана')).toBeInTheDocument()
+
+    const details = screen.getByRole('region', { name: 'Детали записи' })
+    expect(within(details).getByText('Короткий звонок')).toBeInTheDocument()
+    expect(within(details).getByText(`${formatSlotDateLabel(slot)}, 09:00`)).toBeInTheDocument()
+    expect(within(details).getByText('15 минут')).toBeInTheDocument()
+    expect(within(details).getByText('Анна')).toBeInTheDocument()
+    expect(within(details).getByText('anna@example.com')).toBeInTheDocument()
+    expect(within(details).getByText('Позвоните заранее')).toBeInTheDocument()
+  })
+
+  it('сообщает о занятости слота и обновляет список свободных', async () => {
+    mockBookingPage()
+    vi.mocked(bookingsCreate).mockResolvedValue({
+      data: undefined,
+      error: { error: 'слот уже занят' },
+      response: new Response(null, { status: 409 }),
+    })
+
+    renderEventTypePage()
+    await screen.findByRole('button', { name: '09:00' })
+    selectSlotAndFillForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Записаться' }))
+
+    expect(await screen.findByText('Это время уже занято')).toBeInTheDocument()
+    expect(vi.mocked(eventTypesSlots).mock.calls.length).toBeGreaterThan(1)
   })
 })

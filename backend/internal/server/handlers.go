@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"net/mail"
+	"strings"
 	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -30,18 +32,11 @@ func (h *handlers) EventTypesList(
 
 	resp := make(api.EventTypesList200JSONResponse, 0, len(types))
 	for _, et := range types {
-		resp = append(resp, api.EventType{
-			Id:              int32(et.ID),
-			Name:            et.Name,
-			Description:     et.Description,
-			DurationMinutes: int32(et.DurationMinutes),
-		})
+		resp = append(resp, toAPIEventType(et))
 	}
 
 	return resp, nil
 }
-
-// Операции ниже реализуются в следующих срезах и пока отвечают 501.
 
 // BookingsWindow отдаёт окно записи — первый и последний день, доступные гостю.
 func (h *handlers) BookingsWindow(
@@ -57,10 +52,87 @@ func (h *handlers) BookingsWindow(
 }
 
 func (h *handlers) BookingsCreate(
-	_ context.Context,
-	_ api.BookingsCreateRequestObject,
+	ctx context.Context,
+	req api.BookingsCreateRequestObject,
 ) (api.BookingsCreateResponseObject, error) {
-	return notImplemented{}, nil
+	if req.Body == nil {
+		return api.BookingsCreate400JSONResponse{Error: "тело запроса обязательно"}, nil
+	}
+
+	params, problem := bookingParams(*req.Body)
+	if problem != "" {
+		return api.BookingsCreate400JSONResponse{Error: problem}, nil
+	}
+
+	booking, err := store.CreateBooking(ctx, h.db, params, time.Now())
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		return api.BookingsCreate404JSONResponse{Error: "тип события не найден"}, nil
+	case errors.Is(err, store.ErrConflict):
+		return api.BookingsCreate409JSONResponse{Error: "слот уже занят"}, nil
+	case errors.Is(err, store.ErrUnprocessable):
+		return api.BookingsCreate422JSONResponse{Error: "время недоступно для записи"}, nil
+	case err != nil:
+		return nil, err
+	}
+
+	return api.BookingsCreate201JSONResponse(toAPIBooking(booking)), nil
+}
+
+// bookingParams проверяет обязательные поля запроса и приводит их к параметрам
+// хранилища. Возвращает текст ошибки, если данные невалидны.
+func bookingParams(body api.CreateBookingRequest) (store.CreateBookingParams, string) {
+	name := strings.TrimSpace(body.GuestName)
+	if name == "" {
+		return store.CreateBookingParams{}, "имя обязательно"
+	}
+
+	email := strings.TrimSpace(body.GuestEmail)
+	if !validEmail(email) {
+		return store.CreateBookingParams{}, "укажите корректный email"
+	}
+
+	comment := ""
+	if body.Comment != nil {
+		comment = strings.TrimSpace(*body.Comment)
+	}
+
+	return store.CreateBookingParams{
+		EventTypeID: int64(body.EventTypeId),
+		StartsAt:    body.StartsAt,
+		GuestName:   name,
+		GuestEmail:  email,
+		Comment:     comment,
+	}, ""
+}
+
+// validEmail сообщает, является ли строка корректным адресом без отображаемого
+// имени — email гостя должен быть именно адресом.
+func validEmail(email string) bool {
+	addr, err := mail.ParseAddress(email)
+	return err == nil && addr.Address == email
+}
+
+// toAPIEventType переводит тип события хранилища в формат ответа API.
+func toAPIEventType(et store.EventType) api.EventType {
+	return api.EventType{
+		Id:              int32(et.ID),
+		Description:     et.Description,
+		Name:            et.Name,
+		DurationMinutes: int32(et.DurationMinutes),
+	}
+}
+
+// toAPIBooking переводит запись хранилища в формат ответа API.
+func toAPIBooking(b store.Booking) api.Booking {
+	return api.Booking{
+		Id:         int32(b.ID),
+		EventType:  toAPIEventType(b.EventType),
+		StartsAt:   b.StartsAt,
+		GuestName:  b.GuestName,
+		GuestEmail: b.GuestEmail,
+		Comment:    b.Comment,
+	}
 }
 
 func (h *handlers) BookingsUpcoming(
@@ -112,10 +184,6 @@ func (h *handlers) EventTypesSlots(
 
 // notImplemented отвечает 501 Not Implemented на ещё не реализованные операции.
 type notImplemented struct{}
-
-func (notImplemented) VisitBookingsCreateResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
 
 func (notImplemented) VisitBookingsUpcomingResponse(w http.ResponseWriter) error {
 	return writeNotImplemented(w)
