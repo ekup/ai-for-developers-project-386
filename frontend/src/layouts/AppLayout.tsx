@@ -5,6 +5,7 @@ import { NavLink, Outlet } from 'react-router'
 const navItems = [
   { to: '/book', label: 'Записаться' },
   { to: '/events', label: 'Предстоящие события' },
+  { to: '/admin', label: 'Управление' },
 ]
 
 /**

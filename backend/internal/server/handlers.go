@@ -143,24 +143,96 @@ func (h *handlers) BookingsUpcoming(
 }
 
 func (h *handlers) EventTypesCreate(
-	_ context.Context,
-	_ api.EventTypesCreateRequestObject,
+	ctx context.Context,
+	req api.EventTypesCreateRequestObject,
 ) (api.EventTypesCreateResponseObject, error) {
-	return notImplemented{}, nil
+	if req.Body == nil {
+		return api.EventTypesCreate400JSONResponse{Error: "тело запроса обязательно"}, nil
+	}
+
+	params, problem := createEventTypeParams(*req.Body)
+	if problem != "" {
+		return api.EventTypesCreate400JSONResponse{Error: problem}, nil
+	}
+
+	created, err := store.CreateEventType(ctx, h.db, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.EventTypesCreate201JSONResponse(toAPIEventType(created)), nil
+}
+
+// createEventTypeParams проверяет обязательные поля запроса на создание типа
+// события и приводит их к параметрам хранилища. Возвращает текст ошибки, если
+// данные невалидны.
+func createEventTypeParams(body api.CreateEventTypeRequest) (store.CreateEventTypeParams, string) {
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		return store.CreateEventTypeParams{}, "название обязательно"
+	}
+	if body.DurationMinutes <= 0 {
+		return store.CreateEventTypeParams{}, "длительность должна быть больше нуля"
+	}
+
+	return store.CreateEventTypeParams{
+		Name:            name,
+		Description:     strings.TrimSpace(body.Description),
+		DurationMinutes: int64(body.DurationMinutes),
+	}, ""
 }
 
 func (h *handlers) EventTypesRemove(
-	_ context.Context,
-	_ api.EventTypesRemoveRequestObject,
+	ctx context.Context,
+	req api.EventTypesRemoveRequestObject,
 ) (api.EventTypesRemoveResponseObject, error) {
-	return notImplemented{}, nil
+	err := store.DeleteEventType(ctx, h.db, int64(req.Id), time.Now())
+	if errors.Is(err, store.ErrNotFound) {
+		return api.EventTypesRemove404JSONResponse{Error: "тип события не найден"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return api.EventTypesRemove204Response{}, nil
 }
 
 func (h *handlers) EventTypesUpdate(
-	_ context.Context,
-	_ api.EventTypesUpdateRequestObject,
+	ctx context.Context,
+	req api.EventTypesUpdateRequestObject,
 ) (api.EventTypesUpdateResponseObject, error) {
-	return notImplemented{}, nil
+	if req.Body == nil {
+		return api.EventTypesUpdate400JSONResponse{Error: "тело запроса обязательно"}, nil
+	}
+
+	params, problem := updateEventTypeParams(*req.Body)
+	if problem != "" {
+		return api.EventTypesUpdate400JSONResponse{Error: problem}, nil
+	}
+
+	updated, err := store.UpdateEventType(ctx, h.db, int64(req.Id), params)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		return api.EventTypesUpdate404JSONResponse{Error: "тип события не найден"}, nil
+	case err != nil:
+		return nil, err
+	}
+
+	return api.EventTypesUpdate200JSONResponse(toAPIEventType(updated)), nil
+}
+
+// updateEventTypeParams проверяет название при правке типа события и приводит
+// данные к параметрам хранилища.
+func updateEventTypeParams(body api.UpdateEventTypeRequest) (store.UpdateEventTypeParams, string) {
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		return store.UpdateEventTypeParams{}, "название обязательно"
+	}
+
+	return store.UpdateEventTypeParams{
+		Name:        name,
+		Description: strings.TrimSpace(body.Description),
+	}, ""
 }
 
 // EventTypesSlots отдаёт свободные старты слотов типа события на дату.
@@ -186,18 +258,6 @@ func (h *handlers) EventTypesSlots(
 type notImplemented struct{}
 
 func (notImplemented) VisitBookingsUpcomingResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
-
-func (notImplemented) VisitEventTypesCreateResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
-
-func (notImplemented) VisitEventTypesRemoveResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
-
-func (notImplemented) VisitEventTypesUpdateResponse(w http.ResponseWriter) error {
 	return writeNotImplemented(w)
 }
 

@@ -25,5 +25,6 @@ describe('AppLayout', () => {
       'href',
       '/events',
     )
+    expect(screen.getByRole('link', { name: 'Управление' })).toHaveAttribute('href', '/admin')
   })
 })
