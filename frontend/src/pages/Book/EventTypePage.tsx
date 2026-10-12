@@ -6,8 +6,8 @@ import {
   Box,
   Button,
   Container,
-  Group,
   Loader,
+  SimpleGrid,
   Stack,
   Text,
   Title,
@@ -191,13 +191,13 @@ export function EventTypePage() {
                 ) : null}
 
                 {currentSlots?.status === 'ok' && currentSlots.slots.length > 0 ? (
-                  <Group gap="xs">
+                  <SimpleGrid cols={{ base: 3, sm: 6 }} spacing="xs">
                     {currentSlots.slots.map((slot) => (
-                      <Button key={slot} variant="light" color="orange">
+                      <Button key={slot} variant="light" color="orange" w="100%">
                         {formatSlotTime(slot)}
                       </Button>
                     ))}
-                  </Group>
+                  </SimpleGrid>
                 ) : null}
               </Stack>
             </>
