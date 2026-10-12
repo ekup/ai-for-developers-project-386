@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import {
   Alert,
   Badge,
   Box,
+  Button,
   Card,
   Container,
   Group,
@@ -14,21 +16,7 @@ import {
 
 import type { EventType } from '../../api/client'
 import { eventTypesList } from '../../api/client'
-
-/** formatDuration склоняет слово «минута» по числу. */
-function formatDuration(minutes: number): string {
-  const mod10 = minutes % 10
-  const mod100 = minutes % 100
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return `${minutes} минута`
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-    return `${minutes} минуты`
-  }
-
-  return `${minutes} минут`
-}
+import { formatDuration } from './duration'
 
 /**
  * Раздел «Записаться»: список активных типов событий для гостя.
@@ -45,7 +33,7 @@ export function BookPage() {
         if (cancelled) {
           return
         }
-        if (result.error || !result.data) {
+        if (result.error || !Array.isArray(result.data)) {
           setFailed(true)
           return
         }
@@ -88,17 +76,28 @@ export function BookPage() {
               ) : null}
               {eventTypes.map((eventType) => (
                 <Card key={eventType.id} withBorder padding="lg" radius="md">
-                  <Group justify="space-between" align="flex-start" wrap="nowrap">
-                    <Stack gap={4}>
-                      <Title order={2} size="h4">
-                        {eventType.name}
-                      </Title>
-                      <Text c="dimmed">{eventType.description}</Text>
-                    </Stack>
-                    <Badge size="lg" variant="light" color="orange">
-                      {formatDuration(eventType.durationMinutes)}
-                    </Badge>
-                  </Group>
+                  <Stack gap="sm">
+                    <Group justify="space-between" align="flex-start" wrap="nowrap">
+                      <Stack gap={4}>
+                        <Title order={2} size="h4">
+                          {eventType.name}
+                        </Title>
+                        <Text c="dimmed">{eventType.description}</Text>
+                      </Stack>
+                      <Badge size="lg" variant="light" color="orange">
+                        {formatDuration(eventType.durationMinutes)}
+                      </Badge>
+                    </Group>
+                    <Button
+                      component={Link}
+                      to={`/book/${eventType.id}`}
+                      color="orange"
+                      variant="light"
+                      w="fit-content"
+                    >
+                      Выбрать время
+                    </Button>
+                  </Stack>
                 </Card>
               ))}
             </Stack>

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -66,6 +67,18 @@ func TestStaticServing(t *testing.T) {
 		}
 		if got := rec.Body.String(); got != "<!doctype html><h1>hello</h1>" {
 			t.Fatalf("ожидался index.html, получено %q", got)
+		}
+	})
+
+	t.Run("неизвестный маршрут API отвечает 404, а не статикой", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/does-not-exist", nil))
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("ожидался статус %d, получен %d", http.StatusNotFound, rec.Code)
+		}
+		if strings.Contains(rec.Body.String(), "<!doctype html>") {
+			t.Fatalf("неизвестный маршрут API не должен отдавать index.html, получено %q", rec.Body.String())
 		}
 	})
 }

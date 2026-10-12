@@ -27,6 +27,20 @@ export type Booking = {
 }
 
 /**
+ * Окно записи: период, в пределах которого гость может выбрать слот.
+ */
+export type BookingWindow = {
+  /**
+   * Первый день окна (YYYY-MM-DD), серверная дата.
+   */
+  start: string
+  /**
+   * Последний день окна (YYYY-MM-DD).
+   */
+  end: string
+}
+
+/**
  * Данные для создания записи.
  */
 export type CreateBookingRequest = {
@@ -163,6 +177,22 @@ export type BookingsUpcomingResponses = {
 }
 
 export type BookingsUpcomingResponse = BookingsUpcomingResponses[keyof BookingsUpcomingResponses]
+
+export type BookingsWindowData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/bookings/window'
+}
+
+export type BookingsWindowResponses = {
+  /**
+   * The request has succeeded.
+   */
+  200: BookingWindow
+}
+
+export type BookingsWindowResponse = BookingsWindowResponses[keyof BookingsWindowResponses]
 
 export type EventTypesListData = {
   body?: never

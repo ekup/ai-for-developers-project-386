@@ -9,6 +9,8 @@ import type {
   BookingsUpcomingData,
   BookingsUpcomingErrors,
   BookingsUpcomingResponses,
+  BookingsWindowData,
+  BookingsWindowResponses,
   EventTypesCreateData,
   EventTypesCreateErrors,
   EventTypesCreateResponses,
@@ -67,6 +69,17 @@ export const bookingsUpcoming = <ThrowOnError extends boolean = false>(
 ): RequestResult<BookingsUpcomingResponses, BookingsUpcomingErrors, ThrowOnError> =>
   (options?.client ?? client).get<BookingsUpcomingResponses, BookingsUpcomingErrors, ThrowOnError>({
     url: '/api/bookings/upcoming',
+    ...options,
+  })
+
+/**
+ * Окно записи: первый и последний день, доступные для записи.
+ */
+export const bookingsWindow = <ThrowOnError extends boolean = false>(
+  options?: Options<BookingsWindowData, ThrowOnError>,
+): RequestResult<BookingsWindowResponses, unknown, ThrowOnError> =>
+  (options?.client ?? client).get<BookingsWindowResponses, unknown, ThrowOnError>({
+    url: '/api/bookings/window',
     ...options,
   })
 

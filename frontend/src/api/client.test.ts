@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { eventTypesList } from './client'
+import { bookingsWindow, eventTypesList, eventTypesSlots } from './client'
 
 describe('клиент API', () => {
   afterEach(() => {
@@ -26,5 +26,49 @@ describe('клиент API', () => {
     expect(result.error).toBeUndefined()
     expect(result.data).toEqual(payload)
     expect(fetchMock).toHaveBeenCalled()
+  })
+
+  it('читает свободные слоты типа события на дату через сгенерированный SDK', async () => {
+    const payload = {
+      date: '2026-10-13',
+      slots: ['2026-10-13T09:00:00+03:00', '2026-10-13T09:15:00+03:00'],
+    }
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await eventTypesSlots({ path: { id: 1 }, query: { date: '2026-10-13' } })
+
+    expect(result.error).toBeUndefined()
+    expect(result.data).toEqual(payload)
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toContain('/api/event-types/1/slots')
+    expect(request.url).toContain('date=2026-10-13')
+  })
+
+  it('читает окно записи через сгенерированный SDK', async () => {
+    const payload = { start: '2026-10-12', end: '2026-10-25' }
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await bookingsWindow()
+
+    expect(result.error).toBeUndefined()
+    expect(result.data).toEqual(payload)
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toContain('/api/bookings/window')
   })
 })
