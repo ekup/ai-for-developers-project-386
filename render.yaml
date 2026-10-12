@@ -5,7 +5,9 @@
 # пересоздаётся при каждом редеплое и спин-дауне — см. README, раздел «Прод».
 services:
   - type: web
-    name: call-booking
+    # Render занял это имя сам: `call-booking` уже было занято, и дашборд
+    # добавил суффикс. Субдомен сервиса при этом свой — call-booking-ry23.
+    name: call-booking-ekup
     runtime: docker
     region: frankfurt
     branch: main
