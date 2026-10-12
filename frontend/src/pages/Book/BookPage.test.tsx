@@ -57,4 +57,15 @@ describe('BookPage', () => {
 
     expect(await screen.findByText('Не удалось загрузить типы событий')).toBeInTheDocument()
   })
+
+  it('не падает, если вместо списка пришёл не массив', async () => {
+    vi.mocked(eventTypesList).mockResolvedValue({
+      data: '<!doctype html><html></html>' as unknown as [],
+      error: undefined,
+    })
+
+    renderBookPage()
+
+    expect(await screen.findByText('Не удалось загрузить типы событий')).toBeInTheDocument()
+  })
 })

@@ -68,6 +68,14 @@ func spaHandler(staticDir string) http.Handler {
 	fileServer := http.FileServer(http.Dir(staticDir))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Неизвестные маршруты API не подменяются статикой: клиент должен
+		// получить 404, а не HTML с кодом 200 (иначе он примет разметку за
+		// данные). Регистрируем это до SPA fallback.
+		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
+		}
+
 		cleanPath := path.Clean(r.URL.Path)
 
 		if cleanPath == "/" || cleanPath == "." {

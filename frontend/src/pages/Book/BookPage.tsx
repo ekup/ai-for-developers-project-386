@@ -33,7 +33,7 @@ export function BookPage() {
         if (cancelled) {
           return
         }
-        if (result.error || !result.data) {
+        if (result.error || !Array.isArray(result.data)) {
           setFailed(true)
           return
         }

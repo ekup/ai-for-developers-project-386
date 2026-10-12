@@ -146,4 +146,16 @@ describe('EventTypePage', () => {
 
     expect(await screen.findByText('Не удалось загрузить календарь')).toBeInTheDocument()
   })
+
+  it('не падает, если окно записи пришло не в формате JSON', async () => {
+    vi.mocked(eventTypesList).mockResolvedValue({ data: [aType], error: undefined })
+    vi.mocked(bookingsWindow).mockResolvedValue({
+      data: '<!doctype html><html></html>' as unknown as { start: string; end: string },
+      error: undefined,
+    })
+
+    renderEventTypePage()
+
+    expect(await screen.findByText('Не удалось загрузить календарь')).toBeInTheDocument()
+  })
 })

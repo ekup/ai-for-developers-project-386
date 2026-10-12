@@ -52,7 +52,7 @@ export function EventTypePage() {
         if (cancelled) {
           return
         }
-        if (result.error || !result.data) {
+        if (result.error || !Array.isArray(result.data)) {
           setLoadFailed(true)
           return
         }
@@ -77,11 +77,17 @@ export function EventTypePage() {
         if (cancelled) {
           return
         }
-        if (result.error || !result.data) {
+        const data = result.data
+        if (
+          result.error ||
+          !data ||
+          typeof data.start !== 'string' ||
+          typeof data.end !== 'string'
+        ) {
           setWindowFailed(true)
           return
         }
-        setWindow(result.data)
+        setWindow(data)
       })
       .catch(() => {
         if (!cancelled) {
@@ -110,7 +116,7 @@ export function EventTypePage() {
         if (cancelled) {
           return
         }
-        if (result.error || !result.data) {
+        if (result.error || !result.data || !Array.isArray(result.data.slots)) {
           setSlotsResult({ status: 'error', date: selectedDate })
           return
         }
