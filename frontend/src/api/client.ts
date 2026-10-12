@@ -10,6 +10,7 @@ client.setConfig({ baseUrl: window.location.origin })
 export {
   bookingsCreate,
   bookingsUpcoming,
+  bookingsWindow,
   eventTypesCreate,
   eventTypesList,
   eventTypesRemove,
@@ -20,6 +21,7 @@ export {
 export type {
   ApiErrorBody,
   Booking,
+  BookingWindow,
   CreateBookingRequest,
   CreateEventTypeRequest,
   EventType,

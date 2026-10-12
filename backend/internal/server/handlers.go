@@ -3,7 +3,11 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
+	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/ekup/ai-for-developers-project-386/backend/internal/api"
 	"github.com/ekup/ai-for-developers-project-386/backend/internal/store"
@@ -38,6 +42,19 @@ func (h *handlers) EventTypesList(
 }
 
 // Операции ниже реализуются в следующих срезах и пока отвечают 501.
+
+// BookingsWindow отдаёт окно записи — первый и последний день, доступные гостю.
+func (h *handlers) BookingsWindow(
+	_ context.Context,
+	_ api.BookingsWindowRequestObject,
+) (api.BookingsWindowResponseObject, error) {
+	start, end := store.BookingWindow(time.Now())
+
+	return api.BookingsWindow200JSONResponse{
+		Start: openapi_types.Date{Time: start},
+		End:   openapi_types.Date{Time: end},
+	}, nil
+}
 
 func (h *handlers) BookingsCreate(
 	_ context.Context,
@@ -74,11 +91,23 @@ func (h *handlers) EventTypesUpdate(
 	return notImplemented{}, nil
 }
 
+// EventTypesSlots отдаёт свободные старты слотов типа события на дату.
 func (h *handlers) EventTypesSlots(
-	_ context.Context,
-	_ api.EventTypesSlotsRequestObject,
+	ctx context.Context,
+	req api.EventTypesSlotsRequestObject,
 ) (api.EventTypesSlotsResponseObject, error) {
-	return notImplemented{}, nil
+	slots, err := store.Slots(ctx, h.db, int64(req.Id), req.Params.Date.Time, time.Now())
+	if errors.Is(err, store.ErrNotFound) {
+		return api.EventTypesSlots404JSONResponse{Error: "тип события не найден"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return api.EventTypesSlots200JSONResponse{
+		Date:  req.Params.Date,
+		Slots: slots,
+	}, nil
 }
 
 // notImplemented отвечает 501 Not Implemented на ещё не реализованные операции.
@@ -101,10 +130,6 @@ func (notImplemented) VisitEventTypesRemoveResponse(w http.ResponseWriter) error
 }
 
 func (notImplemented) VisitEventTypesUpdateResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
-
-func (notImplemented) VisitEventTypesSlotsResponse(w http.ResponseWriter) error {
 	return writeNotImplemented(w)
 }
 

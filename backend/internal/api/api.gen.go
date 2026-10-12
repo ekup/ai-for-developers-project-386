@@ -41,6 +41,15 @@ type Booking struct {
 	StartsAt   time.Time `json:"startsAt"`
 }
 
+// BookingWindow Окно записи: период, в пределах которого гость может выбрать слот.
+type BookingWindow struct {
+	// End Последний день окна (YYYY-MM-DD).
+	End openapi_types.Date `json:"end"`
+
+	// Start Первый день окна (YYYY-MM-DD), серверная дата.
+	Start openapi_types.Date `json:"start"`
+}
+
 // CreateBookingRequest Данные для создания записи.
 type CreateBookingRequest struct {
 	Comment     *string   `json:"comment,omitempty"`
@@ -110,6 +119,9 @@ type ServerInterface interface {
 	// (GET /api/bookings/upcoming)
 	BookingsUpcoming(w http.ResponseWriter, r *http.Request)
 
+	// (GET /api/bookings/window)
+	BookingsWindow(w http.ResponseWriter, r *http.Request)
+
 	// (GET /api/event-types)
 	EventTypesList(w http.ResponseWriter, r *http.Request)
 
@@ -137,6 +149,11 @@ func (_ Unimplemented) BookingsCreate(w http.ResponseWriter, r *http.Request) {
 
 // (GET /api/bookings/upcoming)
 func (_ Unimplemented) BookingsUpcoming(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/bookings/window)
+func (_ Unimplemented) BookingsWindow(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -193,6 +210,20 @@ func (siw *ServerInterfaceWrapper) BookingsUpcoming(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.BookingsUpcoming(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BookingsWindow operation middleware
+func (siw *ServerInterfaceWrapper) BookingsWindow(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BookingsWindow(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -444,6 +475,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/bookings/upcoming", wrapper.BookingsUpcoming)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bookings/window", wrapper.BookingsWindow)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/event-types", wrapper.EventTypesList)
 	})
 	r.Group(func(r chi.Router) {
@@ -613,6 +647,27 @@ func (response BookingsUpcoming422JSONResponse) VisitBookingsUpcomingResponse(w 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookingsWindowRequestObject struct {
+}
+
+type BookingsWindowResponseObject interface {
+	VisitBookingsWindowResponse(w http.ResponseWriter) error
+}
+
+type BookingsWindow200JSONResponse BookingWindow
+
+func (response BookingsWindow200JSONResponse) VisitBookingsWindowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -1011,6 +1066,9 @@ type StrictServerInterface interface {
 	// (GET /api/bookings/upcoming)
 	BookingsUpcoming(ctx context.Context, request BookingsUpcomingRequestObject) (BookingsUpcomingResponseObject, error)
 
+	// (GET /api/bookings/window)
+	BookingsWindow(ctx context.Context, request BookingsWindowRequestObject) (BookingsWindowResponseObject, error)
+
 	// (GET /api/event-types)
 	EventTypesList(ctx context.Context, request EventTypesListRequestObject) (EventTypesListResponseObject, error)
 
@@ -1114,6 +1172,30 @@ func (sh *strictHandler) BookingsUpcoming(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(BookingsUpcomingResponseObject); ok {
 		if err := validResponse.VisitBookingsUpcomingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BookingsWindow operation middleware
+func (sh *strictHandler) BookingsWindow(w http.ResponseWriter, r *http.Request) {
+	var request BookingsWindowRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BookingsWindow(ctx, request.(BookingsWindowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BookingsWindow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BookingsWindowResponseObject); ok {
+		if err := validResponse.VisitBookingsWindowResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1267,32 +1349,35 @@ func (sh *strictHandler) EventTypesSlots(w http.ResponseWriter, r *http.Request,
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7FpLbxu3Fv4rBO9d5ALjSNfJIle7PLy4QNNFHgsj8GIyQ1tMR8MJSbkxDAG23DQpHMCbAi3QF9IuupUV",
-	"D6TY1vgvHP6jgqReo6FsxTHUNNDOnhkOP37nfB8Pz2gbB6yWsJjEUuDKNhZBldR88+fthK5wzvgdFm7p",
-	"/0MiAk4TSVmMKxh+hxROIEOQqdfQhUM4hu517OGEs4RwSYl5CdFvcIz+046GNqRwDJl6BV3VhBakcAoZ",
-	"pAgyOIOu2oUW9KALaWEauZUQXMFCchpv4EbDw5w8r1NOQlx50p92bfgYe/qMBBI3PHyHsa/0iCKkH6Bl",
-	"51RvELyDTO2qpjpA0IMWUrsarWoWFxiwWo3EUv85AcnDZJPE8pG5uo3/zck6ruB/lUaEl/psl1aGDzY8",
-	"vFEnQq7UfBo5X2puf+nXiPMuDfXldcZrvsQVTGN5Y3nEFo0l2SBcPyikz6W4LXOPh74kS5LWyIUE0xCP",
-	"r2/sfeMIc4vxhly54nKXE1+SfnQekOd6nCNI35uE6Kl9nRJHcKIOdGwy6MCRTRUdsc4gkq6MnClg/5+V",
-	"xo8K1kfGYBztLAGYTvsw/z6OeNWELpxZuWRwqPb1BXVQjEHu3Q5iwjr39c37NK5LInL8TI9F7OZ5grXY",
-	"8jIOoTihi6qVcTUXzLALZxPLriD1GlpwaHyuh6BtDGUHUm12HoIzbZ7a+5qQqR3I4FTtjYznjR6wD4fQ",
-	"VTvaF1XzHBOa4HMC3K95K3W4p5PxQgKcGI9O4US9gd4YTASn0IWe2tMOrl7q988QLRo6Jnlr/LdptgGd",
-	"a+8RdOEIUugZTr+BLhxDyzI24zyDrJiY6RdoQQfa55DicrxLJ8/DiMkvqFNZb6Gt0wYyOOrraxBotW93",
-	"Hy0x1VR7jsD7krjFqmOBrq2urq4u3b+/dO/ef3J0mXGONBARk8LNlnoFLTix4s4BVi+HgPWGruehktTE",
-	"rK42vOBz7m8VeO9Dtchc1D5OwktbGJwZdbV1VXF19nVpIyouTw+i8Tozr6MyIoVKxSRIx4SkBxkcYw9v",
-	"Ei7smsvXy9fLGhJLSOwnFFfwDXPJw4kvq2Y1JT+hpad24zUXEjYlT/tub2XfmQQxSAJ0bWRiJus0dUYg",
-	"elcdFGDC7jzYckKEHJSZAYtlf3/2kySigRlaeiYs2bZkuqigclYTjXwEJK8Tc0EkLBY2ssvl/14Zhv7s",
-	"dtoJLv9Qu3AGqXptYpZObKWQjtGra5iGh2+Wy1eGLFfZO+A9qhIkCN8kHAWsHoUoZhLV45BwIf04RLJK",
-	"UD9qKKwTJBmi8aYf0RCJrVj6L/qIb/4tiP1Yw12neaAkRJwIVucB6aP731zRDfgKWLwe0UAK9DWVVYMw",
-	"qHNOYomE9CVBbB3J4Wos1OXluUG9G1ENxZ6f9G3pa1N4MmY60MVr+k7ON0r1JGC1/sFqg7j84zdd+8CR",
-	"2d8zdaC+s4meK4vMv5CqlwMzzqCNrkFbbzymDjiBVH17jqs8HsAoCPvD5DPcwWZSeGELOzcFqr5Aoh4E",
-	"hIQkXIh7Ie5PVdzmgLmkU1tMl/Xb/sAMjhG04NgItz0oDEcqHi+q4H1RwcMCTpg6eR76zbVdFgpeKPgf",
-	"rGDTgVD7EzLDaw1vtnreKnXi6DPT1jsS7hxK+sIxb85F/ZhlXKasn3rEXFjIwkI+WQtx1AOlbRo2rKlE",
-	"xNmD+lkdwDvd30RqzyjAtA+vyGkekBrbJKaLwf0akYTrJWxjqqfWnY1Br65i+3Z5g/DGqLywg9hYK9jJ",
-	"TcdyC9IfLDodnOgPIYUOsh1UaC0kv5D8p101+DKoOhL9R+jAqc1q2wjs5TvpCLrFr7dT9r0PVL3t9M5R",
-	"9VdfxUxpVs9UxZTnU8UsDjoLy/qcqpTS8KPWtAbGOd/fphlX4bvcNM96aCafi2V525i8SCIWElxZ9yNB",
-	"PDvN8zrhW6N5wtEZ7YKZ3F8JHQXR1VnC8DvpwpgWxvS5GFPDwxat1X7+hfCTbp1Cy/6swvzmwXwC2dG/",
-	"jVM72MN1HuEKrkqZVEqliAV+VGVCVm6Vb5VxY22IYHsg8GlIGt7okfGGb2Ot8dcA",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

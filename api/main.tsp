@@ -47,6 +47,15 @@ model SlotList {
   slots: utcDateTime[];
 }
 
+@doc("Окно записи: период, в пределах которого гость может выбрать слот.")
+model BookingWindow {
+  @doc("Первый день окна (YYYY-MM-DD), серверная дата.")
+  start: plainDate;
+
+  @doc("Последний день окна (YYYY-MM-DD).")
+  end: plainDate;
+}
+
 @doc("Запись гостя на слот.")
 model Booking {
   id: int32;
@@ -135,5 +144,10 @@ namespace Api {
     @route("/upcoming")
     @get
     upcoming(): Booking[] | ErrorResponse;
+
+    @doc("Окно записи: первый и последний день, доступные для записи.")
+    @route("/window")
+    @get
+    window(): BookingWindow;
   }
 }

@@ -3,6 +3,7 @@
 export {
   bookingsCreate,
   bookingsUpcoming,
+  bookingsWindow,
   eventTypesCreate,
   eventTypesList,
   eventTypesRemove,
@@ -23,6 +24,10 @@ export type {
   BookingsUpcomingErrors,
   BookingsUpcomingResponse,
   BookingsUpcomingResponses,
+  BookingsWindowData,
+  BookingsWindowResponse,
+  BookingsWindowResponses,
+  BookingWindow,
   ClientOptions,
   CreateBookingRequest,
   CreateEventTypeRequest,

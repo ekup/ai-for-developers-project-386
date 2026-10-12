@@ -90,6 +90,20 @@ paths:
                 $ref: '#/components/schemas/ApiErrorBody'
       tags:
         - Записи
+  /api/bookings/window:
+    get:
+      operationId: Bookings_window
+      description: 'Окно записи: первый и последний день, доступные для записи.'
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingWindow'
+      tags:
+        - Записи
   /api/event-types:
     get:
       operationId: EventTypes_list
@@ -349,6 +363,21 @@ components:
         comment:
           type: string
       description: Запись гостя на слот.
+    BookingWindow:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          format: date
+          description: Первый день окна (YYYY-MM-DD), серверная дата.
+        end:
+          type: string
+          format: date
+          description: Последний день окна (YYYY-MM-DD).
+      description: 'Окно записи: период, в пределах которого гость может выбрать слот.'
     CreateBookingRequest:
       type: object
       required:
