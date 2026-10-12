@@ -29,7 +29,7 @@
 
 ## Требования и готчи
 
-- `staticcheck` не ставится через `make install`. Нужен в `PATH`: `go install honnef.co/go/tools/cmd/staticcheck@latest`. CI пинит версию `v0.8.1` — для воспроизведения CI ставьте её же.
+- `staticcheck` не ставится через `make install`. Нужен в `PATH`: `go install honnef.co/go/tools/cmd/staticcheck@latest`. CI пинит версию `v0.8.2` — для воспроизведения CI ставьте её же.
 - `make dev-backend` подставляет `STATIC_DIR=../frontend/dist`, который существует только после сборки фронтенда. В dev это ок: UI отдаёт Vite, `/api` проксируется на бэкенд.
 - Конфиг из окружения: `HOST` (0.0.0.0), `PORT` (8080), `DATABASE_PATH` (`data/app.db`, каталог создаётся автоматически), `STATIC_DIR` (`static`).
 - SQLite — `modernc.org/sqlite` (чистый Go, без cgo), сборка с `CGO_ENABLED=0`. Соединение ограничено `MaxOpenConns(1)`.
