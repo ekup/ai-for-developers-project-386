@@ -5,6 +5,8 @@ FRONTEND_DIR := frontend
 API_DIR      := api
 GOBIN        := $(shell go env GOPATH)/bin
 STATICCHECK  ?= $(shell command -v staticcheck 2>/dev/null || echo "$(GOBIN)/staticcheck")
+# Пояс записи: в нём считаются рабочие часы и окно записи (docs/adr/0003).
+TIMEZONE     ?= Europe/Moscow
 
 .DEFAULT_GOAL := help
 
@@ -72,7 +74,7 @@ smoke: ## Дымовой тест: приложение поднимается �
 
 .PHONY: dev-backend
 dev-backend: ## Запустить бэкенд локально
-	cd $(BACKEND_DIR) && STATIC_DIR=../$(FRONTEND_DIR)/dist go run ./cmd/server
+	cd $(BACKEND_DIR) && TZ=$(TIMEZONE) STATIC_DIR=../$(FRONTEND_DIR)/dist go run ./cmd/server
 
 .PHONY: dev-frontend
 dev-frontend: ## Запустить dev-сервер фронтенда (Vite)
