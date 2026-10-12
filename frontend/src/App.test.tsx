@@ -3,13 +3,14 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { eventTypesList, eventTypesSlots, bookingsWindow } from './api/client'
+import { bookingsUpcoming, bookingsWindow, eventTypesList, eventTypesSlots } from './api/client'
 import { App } from './App'
 
 // Страницы обращаются к API при монтировании — в тестах маршрутов мокаем
 // модуль-клиент, чтобы не ходить в сеть.
 vi.mock('./api/client', () => ({
   bookingsCreate: vi.fn(),
+  bookingsUpcoming: vi.fn(),
   bookingsWindow: vi.fn(),
   eventTypesCreate: vi.fn(),
   eventTypesList: vi.fn(),
@@ -31,6 +32,8 @@ beforeEach(() => {
     data: { start: '2026-10-12', end: '2026-10-25' },
     error: undefined,
   })
+  vi.mocked(bookingsUpcoming).mockReset()
+  vi.mocked(bookingsUpcoming).mockResolvedValue({ data: [], error: undefined })
 })
 
 function renderApp(initialEntries: string[] = ['/']) {

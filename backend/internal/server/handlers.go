@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"net/http"
 	"net/mail"
 	"strings"
 	"time"
@@ -135,11 +134,24 @@ func toAPIBooking(b store.Booking) api.Booking {
 	}
 }
 
+// BookingsUpcoming отдаёт предстоящие встречи всех типов событий — взгляд
+// владельца: единый список по возрастанию времени начала, включая записи мягко
+// удалённых типов.
 func (h *handlers) BookingsUpcoming(
-	_ context.Context,
+	ctx context.Context,
 	_ api.BookingsUpcomingRequestObject,
 ) (api.BookingsUpcomingResponseObject, error) {
-	return notImplemented{}, nil
+	bookings, err := store.UpcomingBookings(ctx, h.db, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make(api.BookingsUpcoming200JSONResponse, 0, len(bookings))
+	for _, b := range bookings {
+		resp = append(resp, toAPIBooking(b))
+	}
+
+	return resp, nil
 }
 
 func (h *handlers) EventTypesCreate(
@@ -252,16 +264,4 @@ func (h *handlers) EventTypesSlots(
 		Date:  req.Params.Date,
 		Slots: slots,
 	}, nil
-}
-
-// notImplemented отвечает 501 Not Implemented на ещё не реализованные операции.
-type notImplemented struct{}
-
-func (notImplemented) VisitBookingsUpcomingResponse(w http.ResponseWriter) error {
-	return writeNotImplemented(w)
-}
-
-func writeNotImplemented(w http.ResponseWriter) error {
-	w.WriteHeader(http.StatusNotImplemented)
-	return nil
 }

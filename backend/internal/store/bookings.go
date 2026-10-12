@@ -103,6 +103,44 @@ func CreateBooking(ctx context.Context, db *sql.DB, p CreateBookingParams, now t
 	}, nil
 }
 
+// UpcomingBookings возвращает предстоящие (начало не раньше now) записи всех
+// типов событий вместе с их типами, отсортированные по времени начала по
+// возрастанию. Записи мягко удалённых типов событий остаются видимыми — фильтр
+// по deleted_at не применяется.
+func UpcomingBookings(ctx context.Context, db *sql.DB, now time.Time) ([]Booking, error) {
+	rows, err := db.QueryContext(
+		ctx,
+		`SELECT b.id, b.starts_at, b.guest_name, b.guest_email, b.comment,
+		        e.id, e.name, e.description, e.duration_minutes
+		   FROM bookings b
+		   JOIN event_types e ON e.id = b.event_type_id
+		  WHERE b.starts_at >= ?
+		  ORDER BY b.starts_at, b.id`,
+		now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("store: выбрать предстоящие записи: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	bookings := make([]Booking, 0)
+	for rows.Next() {
+		var b Booking
+		if err := rows.Scan(
+			&b.ID, &b.StartsAt, &b.GuestName, &b.GuestEmail, &b.Comment,
+			&b.EventType.ID, &b.EventType.Name, &b.EventType.Description, &b.EventType.DurationMinutes,
+		); err != nil {
+			return nil, fmt.Errorf("store: прочитать предстоящую запись: %w", err)
+		}
+		bookings = append(bookings, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("store: перебрать предстоящие записи: %w", err)
+	}
+
+	return bookings, nil
+}
+
 // ensureBookable проверяет, что запись начнётся в будущем, на сетке слотов,
 // попадёт в окно записи и целиком уложится в рабочие часы своего дня.
 func ensureBookable(start time.Time, durationMinutes int64, now time.Time) error {
