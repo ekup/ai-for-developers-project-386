@@ -1,0 +1,25 @@
+# Blueprint прода: https://render.com/docs/blueprint-spec
+#
+# Один web-сервис, который собирается из корневого Dockerfile и раздаёт API и
+# статику фронтенда. Compute-план free: файловая система эфемерная, база SQLite
+# пересоздаётся при каждом редеплое и спин-дауне — см. README, раздел «Прод».
+services:
+  - type: web
+    name: call-booking
+    runtime: docker
+    region: frankfurt
+    branch: main
+    plan: free
+    # Деплой только после зелёных проверок ветки: в main летят и генерация API,
+    # и Docker-дымовой тест.
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    envVars:
+      # Пояс, в котором считаются рабочие часы и окно записи: docs/adr/0003.
+      - key: TZ
+        value: Europe/Moscow
+      # Дублируют значения из Dockerfile — здесь они видны как часть прод-конфига.
+      - key: DATABASE_PATH
+        value: /app/data/app.db
+      - key: STATIC_DIR
+        value: /app/static
