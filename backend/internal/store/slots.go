@@ -19,6 +19,13 @@ const (
 // ErrNotFound возвращается, когда запрошенная сущность отсутствует.
 var ErrNotFound = errors.New("store: не найдено")
 
+// querier — общий источник строк для *sql.DB и *sql.Tx: запросы одного и того
+// же вида выполняются и вне транзакции, и внутри неё.
+type querier interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
 // interval — полуинтервал [start, end).
 type interval struct {
 	start time.Time
@@ -30,6 +37,19 @@ type interval struct {
 func BookingWindow(now time.Time) (time.Time, time.Time) {
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	return start, start.AddDate(0, 0, bookingWindowDays-1)
+}
+
+// dayInWindow возвращает начало календарного дня, к которому относится date, в
+// серверном часовом поясе, и признак того, что этот день попадает в окно записи.
+func dayInWindow(date, now time.Time) (time.Time, bool) {
+	windowStart, windowEnd := BookingWindow(now)
+	day := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, windowStart.Location())
+	return day, !day.Before(windowStart) && !day.After(windowEnd)
+}
+
+// workdayBounds возвращает начало и конец рабочего дня для его начала.
+func workdayBounds(day time.Time) (time.Time, time.Time) {
+	return day.Add(workdayStartHour * time.Hour), day.Add(workdayEndHour * time.Hour)
 }
 
 // Slots возвращает свободные старты слотов типа события на дату в серверном
@@ -47,15 +67,13 @@ func Slots(ctx context.Context, db *sql.DB, eventTypeID int64, date, now time.Ti
 
 	slots := make([]time.Time, 0)
 
-	windowStart, windowEnd := BookingWindow(now)
-	day := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, windowStart.Location())
-	if day.Before(windowStart) || day.After(windowEnd) {
+	day, inWindow := dayInWindow(date, now)
+	if !inWindow {
 		return slots, nil
 	}
 
 	duration := time.Duration(eventType.DurationMinutes) * time.Minute
-	workdayStart := day.Add(workdayStartHour * time.Hour)
-	workdayEnd := day.Add(workdayEndHour * time.Hour)
+	workdayStart, workdayEnd := workdayBounds(day)
 	if duration <= 0 || duration > workdayEnd.Sub(workdayStart) {
 		return slots, nil
 	}
@@ -79,9 +97,9 @@ func Slots(ctx context.Context, db *sql.DB, eventTypeID int64, date, now time.Ti
 }
 
 // getEventType возвращает активный (не удалённый) тип события.
-func getEventType(ctx context.Context, db *sql.DB, id int64) (EventType, error) {
+func getEventType(ctx context.Context, q querier, id int64) (EventType, error) {
 	var et EventType
-	err := db.QueryRowContext(
+	err := q.QueryRowContext(
 		ctx,
 		`SELECT id, name, description, duration_minutes
 		   FROM event_types
@@ -99,8 +117,8 @@ func getEventType(ctx context.Context, db *sql.DB, id int64) (EventType, error) 
 }
 
 // occupiedIntervals возвращает интервалы всех существующих записей.
-func occupiedIntervals(ctx context.Context, db *sql.DB) ([]interval, error) {
-	rows, err := db.QueryContext(
+func occupiedIntervals(ctx context.Context, q querier) ([]interval, error) {
+	rows, err := q.QueryContext(
 		ctx,
 		`SELECT b.starts_at, e.duration_minutes
 		   FROM bookings b
