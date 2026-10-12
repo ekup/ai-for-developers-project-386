@@ -12,6 +12,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/ekup/ai-for-developers-project-386/backend/internal/api"
 )
 
 // NewRouter создаёт HTTP-роутер приложения.
@@ -27,6 +29,8 @@ func NewRouter(db *sql.DB, staticDir string) http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/health", healthHandler(db))
+
+	api.HandlerFromMux(api.NewStrictHandler(&handlers{db: db}, nil), r)
 
 	if staticDir != "" {
 		r.Handle("/*", spaHandler(staticDir))

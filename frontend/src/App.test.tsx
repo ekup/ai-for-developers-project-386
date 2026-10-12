@@ -1,9 +1,15 @@
 import { MantineProvider } from '@mantine/core'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
+
+// Страница записи обращается к API при монтировании — в тестах маршрутов
+// мокаем модуль-клиент, чтобы не ходить в сеть.
+vi.mock('./api/client', () => ({
+  eventTypesList: vi.fn().mockResolvedValue({ data: [], error: undefined }),
+}))
 
 function renderApp(initialEntries: string[] = ['/']) {
   return render(

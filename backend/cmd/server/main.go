@@ -25,6 +25,16 @@ func main() {
 	}
 	defer func() { _ = db.Close() }()
 
+	ctx := context.Background()
+
+	if err := store.Migrate(ctx, db); err != nil {
+		log.Fatalf("не удалось создать схему БД: %v", err)
+	}
+
+	if err := store.SeedEventTypes(ctx, db); err != nil {
+		log.Fatalf("не удалось засеять типы событий: %v", err)
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.Addr(),
 		Handler:           server.NewRouter(db, cfg.StaticDir),
