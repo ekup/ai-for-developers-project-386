@@ -15,7 +15,7 @@ describe('LandingPage', () => {
       </MantineProvider>,
     )
 
-    expect(screen.getByText('Фиксированные слоты по 30 минут с 09:00 до 18:00')).toBeInTheDocument()
+    expect(screen.getByText('Слоты от 15 минут в окне с 09:00 до 18:00')).toBeInTheDocument()
     expect(screen.getByText('Проверка конфликтов: один слот — одна запись')).toBeInTheDocument()
     expect(screen.getByText('Предстоящие записи в отдельном разделе')).toBeInTheDocument()
   })

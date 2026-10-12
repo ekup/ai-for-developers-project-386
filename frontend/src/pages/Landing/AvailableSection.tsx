@@ -2,7 +2,7 @@ import { IconCheck } from '@tabler/icons-react'
 import { Box, Container, List, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 
 const features = [
-  'Фиксированные слоты по 30 минут с 09:00 до 18:00',
+  'Слоты от 15 минут в окне с 09:00 до 18:00',
   'Проверка конфликтов: один слот — одна запись',
   'Предстоящие записи в отдельном разделе',
 ]
