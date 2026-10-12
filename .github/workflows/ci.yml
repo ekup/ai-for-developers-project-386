@@ -113,3 +113,12 @@ jobs:
 
       - name: Smoke test — приложение поднимается и отвечает
         run: make smoke
+
+  docker:
+    name: Docker (build + smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Собрать образ и проверить запуск на PORT
+        run: make docker-smoke

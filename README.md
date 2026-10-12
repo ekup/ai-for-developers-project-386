@@ -111,6 +111,7 @@ make api-docs       # открыть интерактивную документ
 ```bash
 make docker-build
 make docker-run     # http://localhost:8080
+make docker-smoke   # собрать образ, поднять контейнер и проверить /health
 ```
 
 Или напрямую:
@@ -135,7 +136,8 @@ GitHub Actions (`.github/workflows/ci.yml`) на каждый push и pull reque
 
 - бэкенд: `go vet`, `staticcheck`, `go test`;
 - фронтенд: ESLint, Prettier, Vitest;
-- дымовой тест: приложение собирается, поднимается и отвечает на `/health`.
+- дымовой тест: приложение собирается, поднимается и отвечает на `/health`;
+- Docker: образ собирается, контейнер стартует и слушает порт из `PORT`.
 
 ---
 
