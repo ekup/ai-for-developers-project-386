@@ -18,7 +18,9 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/serve
 
 # ---------- Runtime ----------
 FROM alpine:3.22 AS runtime
-RUN apk add --no-cache ca-certificates \
+# tzdata нужна, чтобы переменная TZ (см. docs/adr/0003) действительно
+# переключала пояс: без неё time.Local остаётся в UTC.
+RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S app \
     && adduser -S -G app app \
     && mkdir -p /app/data \
