@@ -11,8 +11,11 @@ import { App } from './App'
 vi.mock('./api/client', () => ({
   bookingsCreate: vi.fn(),
   bookingsWindow: vi.fn(),
+  eventTypesCreate: vi.fn(),
   eventTypesList: vi.fn(),
+  eventTypesRemove: vi.fn(),
   eventTypesSlots: vi.fn(),
+  eventTypesUpdate: vi.fn(),
 }))
 
 beforeEach(() => {
@@ -63,6 +66,16 @@ describe('App', () => {
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Предстоящие события' }),
+    ).toBeInTheDocument()
+  })
+
+  it('переводит в управление типами событий по ссылке навигации', () => {
+    renderApp()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Управление' }))
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Управление типами событий' }),
     ).toBeInTheDocument()
   })
 

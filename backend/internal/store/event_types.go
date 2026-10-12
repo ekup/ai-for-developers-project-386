@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 // EventType — тип события: шаблон встречи, по которому гость выбирает слот.
@@ -57,6 +58,91 @@ func SeedEventTypes(ctx context.Context, db *sql.DB) error {
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: зафиксировать посев: %w", err)
+	}
+
+	return nil
+}
+
+// CreateEventTypeParams — данные для создания типа события.
+type CreateEventTypeParams struct {
+	Name            string
+	Description     string
+	DurationMinutes int64
+}
+
+// CreateEventType создаёт тип события. Идентификатор назначает база.
+func CreateEventType(ctx context.Context, db *sql.DB, p CreateEventTypeParams) (EventType, error) {
+	res, err := db.ExecContext(
+		ctx,
+		`INSERT INTO event_types (name, description, duration_minutes) VALUES (?, ?, ?)`,
+		p.Name, p.Description, p.DurationMinutes,
+	)
+	if err != nil {
+		return EventType{}, fmt.Errorf("store: вставить тип события: %w", err)
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return EventType{}, fmt.Errorf("store: получить идентификатор типа события: %w", err)
+	}
+
+	return EventType{
+		ID:              id,
+		Name:            p.Name,
+		Description:     p.Description,
+		DurationMinutes: p.DurationMinutes,
+	}, nil
+}
+
+// UpdateEventTypeParams — новые название и описание типа события.
+type UpdateEventTypeParams struct {
+	Name        string
+	Description string
+}
+
+// UpdateEventType меняет название и описание активного (не удалённого) типа
+// события. Длительность не меняется. Если тип отсутствует или удалён,
+// возвращается ErrNotFound.
+func UpdateEventType(ctx context.Context, db *sql.DB, id int64, p UpdateEventTypeParams) (EventType, error) {
+	res, err := db.ExecContext(
+		ctx,
+		`UPDATE event_types SET name = ?, description = ? WHERE id = ? AND deleted_at IS NULL`,
+		p.Name, p.Description, id,
+	)
+	if err != nil {
+		return EventType{}, fmt.Errorf("store: обновить тип события: %w", err)
+	}
+
+	changed, err := res.RowsAffected()
+	if err != nil {
+		return EventType{}, fmt.Errorf("store: проверить результат обновления: %w", err)
+	}
+	if changed == 0 {
+		return EventType{}, ErrNotFound
+	}
+
+	return getEventType(ctx, db, id)
+}
+
+// DeleteEventType мягко удаляет тип события, помечая его deleted_at. Записи
+// этого типа сохраняются. Если тип отсутствует или уже удалён, возвращается
+// ErrNotFound.
+func DeleteEventType(ctx context.Context, db *sql.DB, id int64, now time.Time) error {
+	res, err := db.ExecContext(
+		ctx,
+		`UPDATE event_types SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		now, id,
+	)
+	if err != nil {
+		return fmt.Errorf("store: мягко удалить тип события: %w", err)
+	}
+
+	changed, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("store: проверить результат удаления: %w", err)
+	}
+	if changed == 0 {
+		return ErrNotFound
 	}
 
 	return nil
