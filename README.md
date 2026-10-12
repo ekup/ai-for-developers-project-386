@@ -133,10 +133,10 @@ docker run --rm -p 8080:8080 -v call-booking-data:/app/data call-booking:latest
 
 ## Прод
 
-Прод живёт на [Render](https://render.com/) по блюпринту `render.yaml`: один web-сервис `call-booking` в регионе Frankfurt, который собирается из корневого `Dockerfile` и обновляется по пушам в `main` — но только после зелёных проверок ветки.
+Прод живёт на [Render](https://render.com/) по блюпринту `render.yaml`: один web-сервис `call-booking-ekup` в регионе Frankfurt, который собирается из корневого `Dockerfile` и обновляется по пушам в `main` — но только после зелёных проверок ветки.
 
-- приложение: https://call-booking.onrender.com
-- здоровье: https://call-booking.onrender.com/health
+- приложение: https://call-booking-ry23.onrender.com
+- здоровье: https://call-booking-ry23.onrender.com/health
 
 Compute-план — `free`, поэтому это **демо-прод**:
 
