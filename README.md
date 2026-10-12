@@ -93,6 +93,7 @@ make smoke          # дымовой тест: приложение подним
 ```bash
 make api-gen        # TypeSpec → api/openapi/openapi.yaml → SDK + Go-артефакты
 make api-check      # то же самое + проверка, что артефакты не разошлись с контрактом
+make api-docs       # открыть интерактивную документацию API (Swagger UI) в браузере
 ```
 
 Что получается на выходе:

@@ -58,6 +58,10 @@ api-gen: ## Сгенерировать OpenAPI, клиентский SDK и Go-�
 api-check: api-gen ## Проверить, что сгенерированные артефакты совпадают с контрактом
 	@git diff --exit-code -- $(API_DIR)/openapi $(FRONTEND_DIR)/src/api/generated $(BACKEND_DIR)/internal/api || { echo "Сгенерированные артефакты разошлись с контрактом — запустите 'make api-gen' и закоммитьте."; exit 1; }
 
+.PHONY: api-docs
+api-docs: api-gen ## Открыть интерактивную документацию API в браузере
+	cd $(API_DIR) && node serve-docs.mjs
+
 .PHONY: build
 build: frontend-build ## Собрать приложение (фронтенд + бинарник бэкенда)
 	cd $(BACKEND_DIR) && go build -o bin/server ./cmd/server
