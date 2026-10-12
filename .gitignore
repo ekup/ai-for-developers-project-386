@@ -16,6 +16,9 @@ api/node_modules/
 .env.local
 .env.*.local
 
+# Локальная конфигурация инструментов
+opencode.jsonc
+
 # IDE и ОС
 .idea/
 .vscode/
