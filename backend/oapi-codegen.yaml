@@ -1,0 +1,11 @@
+# Конфигурация генерации серверных артефактов Go из OpenAPI.
+# Результат — internal/api/api.gen.go: модели, валидация запросов и интерфейс маршрутов.
+package: api
+output: internal/api/api.gen.go
+generate:
+  models: true
+  chi-server: true
+  strict-server: true
+  embedded-spec: true
+output-options:
+  skip-prune: true

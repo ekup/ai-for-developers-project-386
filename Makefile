@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 BACKEND_DIR  := backend
 FRONTEND_DIR := frontend
+API_DIR      := api
 GOBIN        := $(shell go env GOPATH)/bin
 STATICCHECK  ?= $(shell command -v staticcheck 2>/dev/null || echo "$(GOBIN)/staticcheck")
 
@@ -13,9 +14,10 @@ help: ## Показать список команд
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: ## Установить зависимости бэкенда и фронтенда
+install: ## Установить зависимости бэкенда, фронтенда и контракта API
 	cd $(BACKEND_DIR) && go mod download
 	cd $(FRONTEND_DIR) && npm ci
+	cd $(API_DIR) && npm ci
 
 .PHONY: test
 test: backend-test frontend-test ## Запустить все тесты
@@ -45,6 +47,16 @@ frontend-lint: ## Линтеры и проверка форматировани�
 .PHONY: frontend-build
 frontend-build: ## Собрать статику фронтенда
 	cd $(FRONTEND_DIR) && npm run build
+
+.PHONY: api-gen
+api-gen: ## Сгенерировать OpenAPI, клиентский SDK и Go-артефакты из TypeSpec
+	cd $(API_DIR) && npm run compile
+	cd $(FRONTEND_DIR) && npx openapi-ts
+	cd $(BACKEND_DIR) && go tool oapi-codegen -config oapi-codegen.yaml ../$(API_DIR)/openapi/openapi.yaml
+
+.PHONY: api-check
+api-check: api-gen ## Проверить, что сгенерированные артефакты совпадают с контрактом
+	@git diff --exit-code -- $(API_DIR)/openapi $(FRONTEND_DIR)/src/api/generated $(BACKEND_DIR)/internal/api || { echo "Сгенерированные артефакты разошлись с контрактом — запустите 'make api-gen' и закоммитьте."; exit 1; }
 
 .PHONY: build
 build: frontend-build ## Собрать приложение (фронтенд + бинарник бэкенда)

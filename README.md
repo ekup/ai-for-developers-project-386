@@ -30,9 +30,10 @@
 .
 ├── backend/            # Go-сервис (chi + sqlite), отдаёт API и статику фронтенда
 │   ├── cmd/server/     # точка входа
-│   └── internal/       # config, server, store
+│   └── internal/       # config, server, store, api (сгенерированные артефакты)
 ├── frontend/           # Vite + React + Mantine
-│   └── src/            # лендинг и тесты
+│   └── src/            # лендинг, тесты и src/api (клиентский SDK)
+├── api/                # контракт API на TypeSpec → OpenAPI (api/openapi/openapi.yaml)
 ├── scripts/smoke.sh    # дымовой тест: поднять приложение и проверить ответ
 ├── Dockerfile          # мультистейдж: фронтенд + бэкенд в одном образе
 └── Makefile            # команды запуска, тестов и линтеров
@@ -84,6 +85,23 @@ make frontend-lint  # только линтеры фронтенда
 
 make smoke          # дымовой тест: приложение поднимается и отвечает
 ```
+
+## API-контракт
+
+Контракт API описан на [TypeSpec](https://typespec.io/) в `api/` и служит единственным источником истины для запросов и ответов. Из него генерируются OpenAPI-спецификация, клиентский SDK фронтенда и серверные артефакты Go.
+
+```bash
+make api-gen        # TypeSpec → api/openapi/openapi.yaml → SDK + Go-артефакты
+make api-check      # то же самое + проверка, что артефакты не разошлись с контрактом
+```
+
+Что получается на выходе:
+
+- `api/openapi/openapi.yaml` — OpenAPI-спецификация (эмиттер `@typespec/openapi3`);
+- `frontend/src/api/generated/` — типизированный SDK (`@hey-api/openapi-ts`), поверх него — обёртка `frontend/src/api/client.ts`;
+- `backend/internal/api/api.gen.go` — модели, валидация запросов и интерфейс маршрутов chi (`oapi-codegen`).
+
+Сгенерированные файлы коммитятся, поэтому сборка не требует запуска генерации. Если правишь контракт — запусти `make api-gen` и закоммить результат: CI-задача `api` падает, если артефакты разошлись с `api/*.tsp`.
 
 ## Docker
 

@@ -8,6 +8,9 @@ frontend/node_modules/
 frontend/dist/
 frontend/coverage/
 
+# Node / контракт API
+api/node_modules/
+
 # Окружение
 .env
 .env.local
