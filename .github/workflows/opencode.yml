@@ -41,4 +41,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
         with:
-          model: opencode/deepseek-v4.1-flash
+          # Провайдер opencode-go идёт через подписку OpenCode Go
+          # (opencode.ai/inference/go/v1), а не через кредиты Console,
+          # поэтому ключ тот же — OPENCODE_API_KEY.
+          model: opencode-go/deepseek-v4.1-flash
