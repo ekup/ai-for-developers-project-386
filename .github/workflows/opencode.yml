@@ -25,6 +25,17 @@ jobs:
         with:
           persist-credentials: false
 
+      # opencode.jsonc ссылается на файл с ключом Render через {file:...}.
+      # Отсутствие файла делает конфиг невалидным, поэтому в CI создаём его
+      # заранее. Если секрет RENDER_API_KEY не задан, файл будет пустым —
+      # конфиг остаётся валидным, а MCP-сервер Render просто не авторизуется.
+      - name: Prepare opencode secrets
+        run: |
+          mkdir -p "$HOME/.config/opencode/secrets"
+          printf '%s' "$RENDER_API_KEY" > "$HOME/.config/opencode/secrets/render_api_key"
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
