@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ekup/ai-for-developers-project-386/compare/backend/v0.3.0...backend/v0.3.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* перевести сетку стартов слотов на 30 минут ([255612c](https://github.com/ekup/ai-for-developers-project-386/commit/255612c51ab595e9a68efb019dfaba0310615819)), closes [#26](https://github.com/ekup/ai-for-developers-project-386/issues/26)
+
 ## [0.3.0](https://github.com/ekup/ai-for-developers-project-386/compare/backend/v0.2.0...backend/v0.3.0) (2026-10-12)
 
 
