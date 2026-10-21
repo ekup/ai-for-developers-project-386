@@ -14,10 +14,12 @@
 
 Все команды — из корня репозитория, кроме отмеченных.
 
-- `make install` — зависимости обоих проектов (`go mod download` + `npm ci`).
+- `make install` — зависимости бэкенда, фронтенда, контракта API и `e2e/` (`go mod download` + `npm ci`).
 - `make test` — бэкенд (`go test ./...`) + фронтенд (`npm test` = `vitest run`).
 - `make lint` — бэкенд (`go vet` + `staticcheck`) + фронтенд (ESLint + `prettier --check`).
 - `make smoke` — `./scripts/smoke.sh`: собирает оба проекта, поднимает сервер на порту `18080` с временной БД, проверяет `/health` и отдачу лендинга.
+- `make e2e` — сквозной браузерный тест Playwright против реального сервера: собирает фронтенд и бинарник, поднимает их на порту `18081` с временной БД. `E2E_SKIP_BUILD=1` — пропустить сборку для быстрых локальных итераций. В `make test` не входит.
+- `make e2e-install` — поставить Chromium и системные зависимости для E2E (нужно один раз после `make install`).
 - `make build` — сначала `frontend-build`, потом бинарник в `backend/bin/server` (gitignored).
 - `make dev-backend` / `make dev-frontend` — бэкенд `:8080`, Vite `:5173` с прокси `/api` → `http://localhost:8080`.
 
