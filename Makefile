@@ -3,6 +3,7 @@ SHELL := /bin/bash
 BACKEND_DIR  := backend
 FRONTEND_DIR := frontend
 API_DIR      := api
+E2E_DIR      := e2e
 GOBIN        := $(shell go env GOPATH)/bin
 STATICCHECK  ?= $(shell command -v staticcheck 2>/dev/null || echo "$(GOBIN)/staticcheck")
 # Пояс записи: в нём считаются рабочие часы и окно записи (docs/adr/0003).
@@ -12,17 +13,18 @@ TIMEZONE     ?= Europe/Moscow
 
 .PHONY: help
 help: ## Показать список команд
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: ## Установить зависимости бэкенда, фронтенда и контракта API
+install: ## Установить зависимости бэкенда, фронтенда, контракта API и E2E
 	cd $(BACKEND_DIR) && go mod download
 	cd $(FRONTEND_DIR) && npm ci
 	cd $(API_DIR) && npm ci
+	cd $(E2E_DIR) && npm ci
 
 .PHONY: test
-test: backend-test frontend-test ## Запустить все тесты
+test: backend-test frontend-test ## Тесты бэкенда и фронтенда (без E2E)
 
 .PHONY: lint
 lint: backend-lint frontend-lint ## Запустить все линтеры
@@ -71,6 +73,14 @@ build: frontend-build ## Собрать приложение (фронтенд +
 .PHONY: smoke
 smoke: ## Дымовой тест: приложение поднимается и отвечает
 	./scripts/smoke.sh
+
+.PHONY: e2e
+e2e: ## Сквозной браузерный тест полного сценария (Playwright)
+	cd $(E2E_DIR) && TZ=$(TIMEZONE) npm test
+
+.PHONY: e2e-install
+e2e-install: ## Установить Chromium для E2E-тестов
+	cd $(E2E_DIR) && npx playwright install --with-deps chromium
 
 .PHONY: dev-backend
 dev-backend: ## Запустить бэкенд локально

@@ -11,6 +11,12 @@ frontend/coverage/
 # Node / контракт API
 api/node_modules/
 
+# Node / E2E
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+
 # Окружение
 .env
 .env.local
