@@ -78,7 +78,7 @@ describe('EventTypePage', () => {
     vi.mocked(eventTypesSlots).mockResolvedValue({
       data: {
         date: today,
-        slots: [`${today}T09:00:00+03:00`, `${today}T09:15:00+03:00`],
+        slots: [`${today}T09:00:00+03:00`, `${today}T09:30:00+03:00`],
       },
       error: undefined,
     })
@@ -103,7 +103,7 @@ describe('EventTypePage', () => {
     ).not.toBeInTheDocument()
 
     expect(await screen.findByRole('button', { name: '09:00' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '09:15' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '09:30' })).toBeInTheDocument()
 
     expect(eventTypesSlots).toHaveBeenCalledWith({ path: { id: 1 }, query: { date: today } })
   })

@@ -179,7 +179,7 @@ func TestBookingsCreateNotFoundForMissingOrRemovedType(t *testing.T) {
 }
 
 // TestBookingsCreateRejectsUnavailableTime проверяет 422 для времени в прошлом,
-// вне окна записи и вне рабочих часов.
+// вне окна записи, вне рабочих часов и не на сетке слотов.
 func TestBookingsCreateRejectsUnavailableTime(t *testing.T) {
 	router, db := newSeededRouter(t)
 	id := insertEventType(t, db, 15)
@@ -191,8 +191,10 @@ func TestBookingsCreateRejectsUnavailableTime(t *testing.T) {
 		{name: "в прошлом", startsAt: tomorrowAt(9, 0).AddDate(0, 0, -2)},
 		{name: "вне окна записи", startsAt: tomorrowAt(9, 0).AddDate(0, 0, 14)},
 		{name: "до начала рабочего дня", startsAt: tomorrowAt(8, 45)},
-		{name: "не укладывается в рабочий день", startsAt: tomorrowAt(17, 50)},
-		{name: "не по сетке слотов", startsAt: tomorrowAt(9, 7)},
+		{name: "не укладывается в рабочий день", startsAt: tomorrowAt(18, 0)},
+		{name: "не по сетке слотов: 09:15", startsAt: tomorrowAt(9, 15)},
+		{name: "не по сетке слотов: 09:45", startsAt: tomorrowAt(9, 45)},
+		{name: "не по сетке слотов: 09:07", startsAt: tomorrowAt(9, 7)},
 	}
 
 	for _, tc := range cases {
@@ -211,8 +213,8 @@ func TestBookingsCreateRejectsUnavailableTime(t *testing.T) {
 // пересечении интервалов записей разных типов событий.
 func TestBookingsCreateConflictOnOverlapAcrossTypes(t *testing.T) {
 	router, db := newSeededRouter(t)
-	longID := insertEventType(t, db, 30)
-	shortID := insertEventType(t, db, 15)
+	longID := insertEventType(t, db, 45)
+	shortID := insertEventType(t, db, 30)
 
 	code, raw := postBooking(t, router, bookingRequest{
 		EventTypeID: int64(longID), StartsAt: tomorrowAt(9, 0), GuestName: "Анна", GuestEmail: "anna@example.com",
@@ -222,7 +224,7 @@ func TestBookingsCreateConflictOnOverlapAcrossTypes(t *testing.T) {
 	}
 
 	code, raw = postBooking(t, router, bookingRequest{
-		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 15), GuestName: "Борис", GuestEmail: "boris@example.com",
+		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 30), GuestName: "Борис", GuestEmail: "boris@example.com",
 	})
 	if code != http.StatusConflict {
 		t.Fatalf("пересечение: ожидался статус %d, получен %d, тело: %s", http.StatusConflict, code, raw)
@@ -234,29 +236,55 @@ func TestBookingsCreateConflictOnOverlapAcrossTypes(t *testing.T) {
 // время занято и для повторной записи.
 func TestBookingsCreateAllowsAdjacentSlots(t *testing.T) {
 	router, db := newSeededRouter(t)
-	shortID := insertEventType(t, db, 15)
 	longID := insertEventType(t, db, 30)
+	shortID := insertEventType(t, db, 15)
 
 	code, raw := postBooking(t, router, bookingRequest{
-		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 0), GuestName: "Анна", GuestEmail: "anna@example.com",
+		EventTypeID: int64(longID), StartsAt: tomorrowAt(9, 0), GuestName: "Анна", GuestEmail: "anna@example.com",
 	})
 	if code != http.StatusCreated {
 		t.Fatalf("первая запись: ожидался статус %d, получен %d, тело: %s", http.StatusCreated, code, raw)
 	}
 
-	// [09:15, 09:45) встык к [09:00, 09:15) — пересечения нет.
+	// [09:30, 09:45) встык к [09:00, 09:30) — пересечения нет.
 	code, raw = postBooking(t, router, bookingRequest{
-		EventTypeID: int64(longID), StartsAt: tomorrowAt(9, 15), GuestName: "Борис", GuestEmail: "boris@example.com",
+		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 30), GuestName: "Борис", GuestEmail: "boris@example.com",
 	})
 	if code != http.StatusCreated {
 		t.Fatalf("соседняя запись: ожидался статус %d, получен %d, тело: %s", http.StatusCreated, code, raw)
 	}
 
-	// Старт 09:15 уже занят записью [09:15, 09:45).
+	// Старт 09:30 уже занят записью [09:30, 09:45).
 	code, raw = postBooking(t, router, bookingRequest{
-		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 15), GuestName: "Вера", GuestEmail: "vera@example.com",
+		EventTypeID: int64(shortID), StartsAt: tomorrowAt(9, 30), GuestName: "Вера", GuestEmail: "vera@example.com",
 	})
 	if code != http.StatusConflict {
 		t.Fatalf("повтор слота: ожидался статус %d, получен %d, тело: %s", http.StatusConflict, code, raw)
+	}
+}
+
+// TestBookingsLegacyStartStaysVisibleAndBlocksOverlap проверяет, что запись на
+// прежней сетке (09:15) остаётся в списке предстоящих встреч и занимает своё
+// время для пересекающихся интервалов: миграция и пересчёт не выполняются.
+func TestBookingsLegacyStartStaysVisibleAndBlocksOverlap(t *testing.T) {
+	router, db := newSeededRouter(t)
+	legacyTypeID := insertEventType(t, db, 15)
+	insertBooking(t, db, legacyTypeID, tomorrowAt(9, 15), "Анна", "anna@example.com", "")
+
+	bookings := getUpcoming(t, router)
+	if len(bookings) != 1 {
+		t.Fatalf("ожидалась 1 предстоящая встреча, получено %d", len(bookings))
+	}
+	if got := bookings[0].StartsAt.Format("15:04"); got != "09:15" {
+		t.Errorf("ожидалось начало 09:15, получено %s", got)
+	}
+
+	// [09:00, 09:30) типа на 30 минут перекрывает прежнюю запись [09:15, 09:30).
+	longID := insertEventType(t, db, 30)
+	code, raw := postBooking(t, router, bookingRequest{
+		EventTypeID: int64(longID), StartsAt: tomorrowAt(9, 0), GuestName: "Борис", GuestEmail: "boris@example.com",
+	})
+	if code != http.StatusConflict {
+		t.Fatalf("пересечение с прежней записью: ожидался статус %d, получен %d, тело: %s", http.StatusConflict, code, raw)
 	}
 }

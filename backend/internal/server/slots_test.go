@@ -131,8 +131,8 @@ func slotClock(t *testing.T, slots []string) []string {
 	return clock
 }
 
-// TestEventTypesSlotsGridStep проверяет сетку 15 минут, окно 09:00–18:00 и
-// укладку записи в окно: для 15 минут последний старт — 17:45.
+// TestEventTypesSlotsGridStep проверяет сетку 30 минут, окно 09:00–18:00 и
+// укладку записи в окно: для 15 минут последний старт — 17:30.
 func TestEventTypesSlotsGridStep(t *testing.T) {
 	router, db := newSeededRouter(t)
 	id := insertEventType(t, db, 15)
@@ -148,20 +148,20 @@ func TestEventTypesSlotsGridStep(t *testing.T) {
 	}
 
 	clock := slotClock(t, body.Slots)
-	if len(clock) != 36 {
-		t.Fatalf("ожидалось 36 слотов, получено %d: %v", len(clock), clock)
+	if len(clock) != 18 {
+		t.Fatalf("ожидалось 18 слотов, получено %d: %v", len(clock), clock)
 	}
 	if clock[0] != "09:00" {
 		t.Errorf("ожидался первый слот 09:00, получен %q", clock[0])
 	}
-	if clock[len(clock)-1] != "17:45" {
-		t.Errorf("ожидался последний слот 17:45, получен %q", clock[len(clock)-1])
+	if clock[len(clock)-1] != "17:30" {
+		t.Errorf("ожидался последний слот 17:30, получен %q", clock[len(clock)-1])
 	}
 	for i := 1; i < len(clock); i++ {
 		prev, _ := time.Parse("15:04", clock[i-1])
 		cur, _ := time.Parse("15:04", clock[i])
-		if cur.Sub(prev) != 15*time.Minute {
-			t.Fatalf("шаг между %q и %q не равен 15 минутам", clock[i-1], clock[i])
+		if cur.Sub(prev) != 30*time.Minute {
+			t.Fatalf("шаг между %q и %q не равен 30 минутам", clock[i-1], clock[i])
 		}
 	}
 }
@@ -178,8 +178,8 @@ func TestEventTypesSlotsEndFitsWorkday(t *testing.T) {
 	}
 
 	clock := slotClock(t, body.Slots)
-	if len(clock) != 35 {
-		t.Fatalf("ожидалось 35 слотов, получено %d: %v", len(clock), clock)
+	if len(clock) != 18 {
+		t.Fatalf("ожидалось 18 слотов, получено %d: %v", len(clock), clock)
 	}
 	if clock[len(clock)-1] != "17:30" {
 		t.Errorf("ожидался последний слот 17:30, получен %q", clock[len(clock)-1])
