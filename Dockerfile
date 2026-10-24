@@ -30,10 +30,13 @@ WORKDIR /app
 COPY --from=backend /out/server /app/server
 COPY --from=frontend /app/frontend/dist /app/static
 
+# TZ — пояс записи: рабочие часы и «сегодня» считаются в нём (docs/adr/0003).
+# Инвариант образа, а не настройка хоста; переопределяется через -e TZ.
 ENV HOST=0.0.0.0 \
     PORT=8080 \
     STATIC_DIR=/app/static \
-    DATABASE_PATH=/app/data/app.db
+    DATABASE_PATH=/app/data/app.db \
+    TZ=Europe/Moscow
 
 EXPOSE 8080
 USER app
