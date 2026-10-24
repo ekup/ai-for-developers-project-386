@@ -96,7 +96,7 @@ docker-build: ## Собрать Docker-образ
 
 .PHONY: docker-run
 docker-run: ## Запустить контейнер
-	docker run --rm -p 8080:8080 -v call-booking-data:/app/data --name call-booking call-booking:latest
+	docker run --rm -p 8080:8080 -v call-booking-data:/app/data --name call-booking -e TZ=$(TIMEZONE) call-booking:latest
 
 .PHONY: docker-smoke
 docker-smoke: ## Дымовой тест Docker-образа (сборка + запуск + /health)

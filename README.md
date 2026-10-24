@@ -131,7 +131,7 @@ docker run --rm -p 8080:8080 -v call-booking-data:/app/data call-booking:latest
 | `PORT`          | `8080`        | порт HTTP-сервера                   |
 | `DATABASE_PATH` | `data/app.db` | путь к файлу SQLite                 |
 | `STATIC_DIR`    | `static`      | каталог со собранной статикой фронта |
-| `TZ`            | пояс хоста    | пояс записи: рабочие часы и окно записи считаются в нём. В проде и dev — `Europe/Moscow` (см. `docs/adr/0003`) |
+| `TZ`            | `Europe/Moscow` в образе, пояс хоста при запуске бинарника | пояс записи: рабочие часы и окно записи считаются в нём (см. `docs/adr/0003`). `Dockerfile` задаёт `Europe/Moscow` по умолчанию и оставляет переменную переопределяемой через `-e TZ` |
 
 ## Прод
 
